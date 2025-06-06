@@ -36,7 +36,8 @@ class LightningModule(lightning.LightningModule):
             param.requires_grad = not freeze_encoder
 
         self.log = torch.compiler.disable(self.log)  # type: ignore
-
+        self.class_idx2label = {int(_.split("\t")[0]) : _.split("\t")[-1][:-1].strip() for _ in open('./objectInfo150.txt', "r").readlines
+()[1:]}
     def init_metrics_semantic(self, num_classes, ignore_idx, num_metrics):
         self.metrics = nn.ModuleList(
             [
@@ -72,7 +73,7 @@ class LightningModule(lightning.LightningModule):
     def on_train_batch_start(self, _, batch_idx):
         for i, param_group in enumerate(self.trainer.optimizers[0].param_groups):
             self.log(
-                f"group_{i}_lr_{len(param_group['params'])}",
+                f"trainer/group_{i}_lr_{len(param_group['params'])}",
                 param_group["lr"],
                 on_step=True,
             )
@@ -89,17 +90,18 @@ class LightningModule(lightning.LightningModule):
         miou_per_dataset = []
         iou_per_dataset_per_class = []
         for metric_idx, metric in enumerate(self.metrics):
+            #only JaccardIndex currently
             iou_per_dataset_per_class.append(metric.compute())
             metric.reset()
 
             for iou_idx, iou in enumerate(iou_per_dataset_per_class[-1]):
                 self.log(
-                    f"{log_prefix}_{metric_idx}_iou_{iou_idx}", iou, sync_dist=True
+                     f"per_class_IOU/{log_prefix}/{self.class_idx2label[iou_idx+1]}", iou, sync_dist=True
                 )
 
             miou_per_dataset.append(float(iou_per_dataset_per_class[-1].mean()))
             self.log(
-                f"{log_prefix}_{metric_idx}_miou", miou_per_dataset[-1], sync_dist=True
+                 f"mIOU/{log_prefix}", miou_per_dataset[-1], sync_dist=True
             )
 
     def configure_optimizers(self):

@@ -6,6 +6,12 @@ from torch.optim.lr_scheduler import PolynomialLR
 
 from training.lightning_module import LightningModule
 
+import traceback
+
+def print_stack():
+    print("Call stack:")
+    for line in traceback.format_stack():
+        print(line.strip())
 
 class LinearSemantic(LightningModule):
     def __init__(
@@ -49,7 +55,7 @@ class LinearSemantic(LightningModule):
         targets = torch.stack(targets).long()
 
         loss_total = self.criterion(logits, targets)
-        self.log("train_loss_total", loss_total, sync_dist=True, prog_bar=True)
+        self.log("trainer/loss", loss_total, sync_dist=True, prog_bar=True)
 
         return loss_total
 
@@ -62,7 +68,7 @@ class LinearSemantic(LightningModule):
         is_notebook=False,
     ):
         imgs, targets = batch
-
+        
         crops, origins, img_sizes = self.window_imgs_semantic(imgs)
         crop_logits = self(crops)
         crop_logits = F.interpolate(crop_logits, self.img_size, mode="bilinear")

@@ -49,7 +49,6 @@ class LightningCLI(cli.LightningCLI):
         logging.getLogger().setLevel(logging.INFO)
         torch.set_float32_matmul_precision("medium")
         torch._dynamo.config.suppress_errors = True  # type: ignore
-
         super().__init__(*args, **kwargs)
 
     def add_arguments_to_parser(self, parser):
@@ -79,9 +78,15 @@ class LightningCLI(cli.LightningCLI):
         parser.link_arguments(
             "data.init_args.img_size", "model.init_args.network.init_args.img_size"
         )
+        parser.add_argument('--wandb', action='store_true', help='log on wandb')
+        parser.add_argument('--run_name', type = str, help='wandb run_name')
 
     def fit(self, model, **kwargs):
-        if hasattr(self.trainer.logger.experiment, "log_code"):  # type: ignore
+        if self.config.fit.wandb:
+            self.trainer.logger._wandb_init['project'] = "lin_probe_ade20k"
+            self.trainer.logger._wandb_init['name'] = self.config.fit.run_name
+            self.trainer.logger.experiment
+
             is_gitignored = parse_gitignore(".gitignore")
             include_fn = lambda path: path.endswith(".py") or path.endswith(".yaml")
             self.trainer.logger.experiment.log_code(  # type: ignore
@@ -91,12 +96,9 @@ class LightningCLI(cli.LightningCLI):
         self.trainer.fit_loop.epoch_loop._should_check_val_fx = MethodType(
             _should_check_val_fx, self.trainer.fit_loop.epoch_loop
         )
-
         if not self.config[self.config["subcommand"]]["no_compile"]:  # type: ignore
             model = torch.compile(model)
-
         self.trainer.fit(model, **kwargs)  # type: ignore
-
 
 def cli_main():
     LightningCLI(
@@ -119,3 +121,4 @@ def cli_main():
 
 if __name__ == "__main__":
     cli_main()
+#python main.py fit -c configs/ade20k_linear_semantic.yaml --model.network.encoder_name vit_base_patch14_dinov2 --model.freeze_encoder True --data.num_workers 12 --root /storage/users/manugaur/benchmark-vfm-ss/
