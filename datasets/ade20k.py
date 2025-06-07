@@ -32,7 +32,6 @@ class ADE20K(LightningDataModule):
             img_size=img_size,
         )
         self.save_hyperparameters()
-
         self.transforms = Transforms(img_size=img_size, scale_range=scale_range)
 
     def setup(self, stage: Union[str, None] = None) -> LightningDataModule:

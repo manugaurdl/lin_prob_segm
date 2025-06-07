@@ -82,6 +82,7 @@ class LightningCLI(cli.LightningCLI):
         parser.add_argument('--run_name', type = str, help='wandb run_name')
 
     def fit(self, model, **kwargs):
+        
         if self.config.fit.wandb:
             self.trainer.logger._wandb_init['project'] = "lin_probe_ade20k"
             self.trainer.logger._wandb_init['name'] = self.config.fit.run_name

@@ -1,3 +1,4 @@
+git_push.sh
 *.ckpt
 *.out
 *.sh
