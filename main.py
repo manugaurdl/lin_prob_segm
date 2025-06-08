@@ -10,6 +10,11 @@ from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFe
 from training.lightning_module import LightningModule
 from datasets.lightning_data_module import LightningDataModule
 
+import traceback
+def print_stack():
+    print("Call stack:")
+    for line in traceback.format_stack():
+        print(line.strip())
 
 def _should_check_val_fx(self: _TrainingEpochLoop, data_fetcher: _DataFetcher) -> bool:
     if not self._should_check_val_epoch():
@@ -82,7 +87,6 @@ class LightningCLI(cli.LightningCLI):
         parser.add_argument('--run_name', type = str, help='wandb run_name')
 
     def fit(self, model, **kwargs):
-        
         if self.config.fit.wandb:
             self.trainer.logger._wandb_init['project'] = "lin_probe_ade20k"
             self.trainer.logger._wandb_init['name'] = self.config.fit.run_name

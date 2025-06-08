@@ -2,7 +2,6 @@ from models.encoder import Encoder
 import torch.nn as nn
 import torch
 
-
 class LinearDecoder(Encoder):
     def __init__(
         self,
@@ -14,6 +13,7 @@ class LinearDecoder(Encoder):
         pretrained=True,
         ckpt_path="",
     ):
+
         super().__init__(
             encoder_name=encoder_name,
             img_size=img_size,

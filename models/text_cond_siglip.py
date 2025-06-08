@@ -45,8 +45,6 @@ class Encoder(nn.Module):
         )
 
         if sub_norm:
-            print("$$$$$$$"*1000)
-            exit()
             for block in self.encoder.blocks:
                 new_mlp = type(block.mlp)(
                     in_features=block.mlp.fc1.in_features,
