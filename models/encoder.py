@@ -9,7 +9,7 @@ from timm.layers import (
 )
 from timm.models._manipulate import checkpoint_seq
 from torch.nn.functional import interpolate
-
+from open_clip import create_model_from_pretrained, get_tokenizer
 
 class Encoder(nn.Module):
     def __init__(
@@ -22,21 +22,29 @@ class Encoder(nn.Module):
         pretrained,
     ):
         super().__init__()
-
-        model_kwargs = {
-            "model_name": encoder_name,
-            "pretrained": pretrained,
-            "num_classes": 0,
-        }
-        self.encoder = timm.create_model(**model_kwargs)
-
-        pixel_mean = torch.tensor(self.encoder.default_cfg["mean"]).reshape(1, -1, 1, 1)
-        pixel_std = torch.tensor(self.encoder.default_cfg["std"]).reshape(1, -1, 1, 1)
-
+        
+        if 'so400m' in encoder_name.lower():
+            encoder_name = f"hf-hub:timm/{encoder_name}"
+            self.encoder, self.preprocess = create_model_from_pretrained(encoder_name)
+            self.encoder = self.encoder.visual.trunk
+            norm_mean = norm_std = (0.5, 0.5, 0.5)
+            self.encoder.embed_dim = 1152
+        else:
+            model_kwargs = {
+                "model_name": encoder_name,
+                "pretrained": pretrained,
+                "num_classes": 0,
+            }
+            self.encoder = timm.create_model(**model_kwargs)
+            norm_mean = self.encoder.default_cfg["mean"]
+            norm_std = self.encoder.default_cfg["std"]
+        
+        pixel_mean = torch.tensor(norm_mean).reshape(1, -1, 1, 1)
+        pixel_std = torch.tensor(norm_std).reshape(1, -1, 1, 1)
         self.register_buffer("pixel_mean", pixel_mean)
         self.register_buffer("pixel_std", pixel_std)
 
-        self.grid_size = tuple(round(size / patch_size) for size in img_size)
+        self.grid_size = tuple(round(size / patch_size) for size in img_size) #should be (37,37) when patch_size=14
 
         self.embed_dim = (
             self.encoder.embed_dim
@@ -45,8 +53,6 @@ class Encoder(nn.Module):
         )
 
         if sub_norm:
-            print("$$$$$$$"*1000)
-            exit()
             for block in self.encoder.blocks:
                 new_mlp = type(block.mlp)(
                     in_features=block.mlp.fc1.in_features,
@@ -63,7 +69,6 @@ class Encoder(nn.Module):
 
         if hasattr(self.encoder, "neck"):
             self.encoder.neck = nn.Identity()
-
         if ckpt_path:
             self.encoder.load_state_dict(torch.load(ckpt_path))
 
@@ -104,7 +109,6 @@ class Encoder(nn.Module):
                         block.window_size,
                         old_window_size,
                     )
-
         if hasattr(self.encoder, "patch_embed"):
             if (
                 self.encoder.patch_embed.grid_size[0]
@@ -113,8 +117,9 @@ class Encoder(nn.Module):
                 != self.encoder.patch_embed.patch_size[1]
             ):
                 raise ValueError("pretrained grid and patch size must be square")
-
-            self.encoder.patch_embed.patch_size = (patch_size, patch_size)
+            
+            #
+            self.encoder.patch_embed.patch_size = (patch_size, patch_size) #change patch_size
             self.encoder.patch_embed.proj.kernel_size = (patch_size, patch_size)
             self.encoder.patch_embed.proj.stride = (patch_size, patch_size)
             self.encoder.patch_embed.proj.weight = nn.Parameter(
@@ -122,7 +127,7 @@ class Encoder(nn.Module):
                     self.encoder.patch_embed.proj.weight,
                     [patch_size, patch_size],
                 )
-            )
+            )#interpolate patch_embed.weight
 
             self.encoder.patch_embed.grid_size = self.grid_size
             self.encoder.patch_embed.num_patches = self.grid_size[0] * self.grid_size[1]
