@@ -29,12 +29,13 @@ class Encoder(nn.Module):
         self.text_conditioning = text_conditioning
         
         if 'so400m' in encoder_name.lower():
+            patch_size = 14
             if text_conditioning:
                 self.encoder = FlamingoCrossAttn(
                         visual_encoder="siglip",
                         text_encoder ="roberta",
                         img_res =img_size[0],
-                        patch_size =14,
+                        patch_size = patch_size,
                         cross_attn_layers =[1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25],
                         cross_attn_ffn_mult =2,
                         )
@@ -42,7 +43,10 @@ class Encoder(nn.Module):
                 self.encoder,
                 rank = 8,
                 last_n_blocks=6
-            )
+                )
+                self.model = self.encoder
+                self.encoder = self.encoder.visual_encoder.trunk
+
             else:
                 encoder_name = f"hf-hub:timm/{encoder_name}"
                 self.encoder, self.preprocess = create_model_from_pretrained(encoder_name)
@@ -50,7 +54,7 @@ class Encoder(nn.Module):
             
             norm_mean = norm_std = (0.5, 0.5, 0.5)
             self.encoder.embed_dim = 1152
-        
+
         else:
             model_kwargs = {
                 "model_name": encoder_name,
@@ -74,7 +78,6 @@ class Encoder(nn.Module):
             if hasattr(self.encoder, "embed_dim")
             else self.encoder.num_features
         )
-
         if sub_norm:
             for block in self.encoder.blocks:
                 new_mlp = type(block.mlp)(
@@ -132,6 +135,7 @@ class Encoder(nn.Module):
                         block.window_size,
                         old_window_size,
                     )
+        breakpoint()
         if hasattr(self.encoder, "patch_embed"):
             if (
                 self.encoder.patch_embed.grid_size[0]
@@ -140,8 +144,6 @@ class Encoder(nn.Module):
                 != self.encoder.patch_embed.patch_size[1]
             ):
                 raise ValueError("pretrained grid and patch size must be square")
-            
-            #
             self.encoder.patch_embed.patch_size = (patch_size, patch_size) #change patch_size
             self.encoder.patch_embed.proj.kernel_size = (patch_size, patch_size)
             self.encoder.patch_embed.proj.stride = (patch_size, patch_size)
@@ -155,7 +157,7 @@ class Encoder(nn.Module):
             self.encoder.patch_embed.grid_size = self.grid_size
             self.encoder.patch_embed.num_patches = self.grid_size[0] * self.grid_size[1]
             self.encoder.patch_embed.img_size = img_size
-
+        breakpoint()
         if hasattr(self.encoder, "pos_embed"):
             if self.encoder.pos_embed.dim() == 4:
                 pos_embed = resample_abs_pos_embed_nhwc(
@@ -185,6 +187,7 @@ class Encoder(nn.Module):
                 )
 
             self.encoder.pos_embed = nn.Parameter(pos_embed)
+        breakpoint()
 
     @staticmethod
     def interpolate_rel_pos(
@@ -215,7 +218,7 @@ class Encoder(nn.Module):
         x = (x - self.pixel_mean) / self.pixel_std
         
         if self.text_conditioning and (text_feat is not None):
-            x = self.encoder(x, text_feat[0], text_feat[1], get_feats=True)
+            x = self.model(x, text_feat[0], text_feat[1], get_feats=True)
         else:
             x = self.encoder.forward_features(x)
             if x.dim() == 4:
