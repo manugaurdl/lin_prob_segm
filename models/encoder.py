@@ -211,10 +211,11 @@ class Encoder(nn.Module):
 
         return nn.Parameter(rel_pos)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, text_feat=None):
         x = (x - self.pixel_mean) / self.pixel_std
-        if self.text_conditioning:
-            pass
+        
+        if self.text_conditioning and (text_feat is not None):
+            x = self.encoder(x, text_feat[0], text_feat[1], get_feats=True)
         else:
             x = self.encoder.forward_features(x)
             if x.dim() == 4:

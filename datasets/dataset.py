@@ -10,7 +10,11 @@ from PIL import Image
 from torch.utils.data import get_worker_info
 from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
-
+import traceback
+def print_stack():
+    print("Call stack:")
+    for line in traceback.format_stack():
+        print(line.strip())
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(
@@ -130,6 +134,7 @@ class Dataset(torch.utils.data.Dataset):
 
                 class_id = self.class_mapping[class_id]
 
+            #nothing is ignore, cus class_idx=0 is actually 'wall'
             if class_id != self.ignore_idx:
                 masks.append(target == label_id)
                 labels.append(torch.tensor([class_id]))
@@ -141,7 +146,10 @@ class Dataset(torch.utils.data.Dataset):
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
-
+        
+        #bg not sampled, if bg is sampled len(x)-1 must be changed to len(x)
+        target["labels"] = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))]
+        
         return img, target
 
     def _load_zips(self) -> Tuple[zipfile.ZipFile, zipfile.ZipFile]:

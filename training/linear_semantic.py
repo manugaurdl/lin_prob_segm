@@ -67,10 +67,12 @@ class LinearSemantic(LightningModule):
         log_prefix=None,
         is_notebook=False,
     ):
-        imgs, targets = batch
-        
+        imgs, targets = batch #both are lists
+        if len(targets)>1:
+            print("$$$"*1000)
+            raise Exception("targets list length > 1")
         crops, origins, img_sizes = self.window_imgs_semantic(imgs)
-        crop_logits = self(crops)
+        crop_logits = self(crops, label=targets[0]['labels'])
         crop_logits = F.interpolate(crop_logits, self.img_size, mode="bilinear")
         logits = self.revert_window_logits_semantic(crop_logits, origins, img_sizes)
 

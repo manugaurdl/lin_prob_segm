@@ -13,6 +13,11 @@ import numpy as np
 from torch.nn.functional import interpolate
 from torchvision.transforms.v2.functional import resize
 
+import traceback
+def print_stack():
+    print("Call stack:")
+    for line in traceback.format_stack():
+        print(line.strip())
 
 class LightningModule(lightning.LightningModule):
     def __init__(
@@ -60,10 +65,9 @@ class LightningModule(lightning.LightningModule):
                 preds[i][None, ...], targets[i][None, ...]
             )
 
-    def forward(self, imgs):
+    def forward(self, imgs, label=None):
         x = imgs / 255.0
-
-        output = self.network(x)
+        output = self.network(x, label=label)
 
         if not self.training and isinstance(output, tuple):
             return (y[-1] for y in self.network(x))

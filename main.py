@@ -59,6 +59,7 @@ class LightningCLI(cli.LightningCLI):
     def add_arguments_to_parser(self, parser):
         parser.add_argument("--root", type=str)
         parser.link_arguments("root", "data.init_args.root")
+        parser.link_arguments("root", "model.init_args.network.init_args.data_dir")
         parser.link_arguments("root", "trainer.logger.init_args.save_dir")
 
         parser.add_argument("--no_compile", action="store_true")
