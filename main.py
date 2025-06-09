@@ -72,7 +72,7 @@ class LightningCLI(cli.LightningCLI):
             "data.init_args.num_classes",
             "model.init_args.network.init_args.num_classes",
         )
-
+        
         parser.link_arguments(
             "data.init_args.num_metrics", "model.init_args.num_metrics"
         )
@@ -85,6 +85,8 @@ class LightningCLI(cli.LightningCLI):
         )
         parser.add_argument('--wandb', action='store_true', help='log on wandb')
         parser.add_argument('--run_name', type = str, help='wandb run_name')
+        parser.add_argument('--text_conditioning', action='store_true', help='using text_conditioned visual encoder')
+        parser.link_arguments("text_conditioning", "model.init_args.network.init_args.text_conditioning")
 
     def fit(self, model, **kwargs):
         if self.config.fit.wandb:

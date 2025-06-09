@@ -7,14 +7,15 @@ class LinearDecoder(Encoder):
         self,
         encoder_name,
         num_classes,
+        text_conditioning,
         img_size,
         sub_norm=False,
         patch_size=16,
         pretrained=True,
         ckpt_path="",
     ):
-
         super().__init__(
+            text_conditioning,
             encoder_name=encoder_name,
             img_size=img_size,
             sub_norm=sub_norm,

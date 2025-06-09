@@ -10,10 +10,14 @@ from timm.layers import (
 from timm.models._manipulate import checkpoint_seq
 from torch.nn.functional import interpolate
 from open_clip import create_model_from_pretrained, get_tokenizer
+import sys;sys.path.append('/home/manugaur/mllm_inversion')
+from src.models import FlamingoCrossAttn
+from .lora import lora_siglip
 
 class Encoder(nn.Module):
     def __init__(
         self,
+        text_conditioning,
         encoder_name,
         img_size: tuple[int, int],
         ckpt_path,
@@ -22,19 +26,38 @@ class Encoder(nn.Module):
         pretrained,
     ):
         super().__init__()
+        self.text_conditioning = text_conditioning
         
         if 'so400m' in encoder_name.lower():
-            encoder_name = f"hf-hub:timm/{encoder_name}"
-            self.encoder, self.preprocess = create_model_from_pretrained(encoder_name)
-            self.encoder = self.encoder.visual.trunk
+            if text_conditioning:
+                self.encoder = FlamingoCrossAttn(
+                        visual_encoder="siglip",
+                        text_encoder ="roberta",
+                        img_res =img_size[0],
+                        patch_size =14,
+                        cross_attn_layers =[1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25],
+                        cross_attn_ffn_mult =2,
+                        )
+                lora_siglip(
+                self.encoder,
+                rank = 8,
+                last_n_blocks=6
+            )
+            else:
+                encoder_name = f"hf-hub:timm/{encoder_name}"
+                self.encoder, self.preprocess = create_model_from_pretrained(encoder_name)
+                self.encoder = self.encoder.visual.trunk
+            
             norm_mean = norm_std = (0.5, 0.5, 0.5)
             self.encoder.embed_dim = 1152
+        
         else:
             model_kwargs = {
                 "model_name": encoder_name,
                 "pretrained": pretrained,
                 "num_classes": 0,
             }
+
             self.encoder = timm.create_model(**model_kwargs)
             norm_mean = self.encoder.default_cfg["mean"]
             norm_std = self.encoder.default_cfg["std"]
@@ -190,12 +213,13 @@ class Encoder(nn.Module):
 
     def forward(self, x: torch.Tensor):
         x = (x - self.pixel_mean) / self.pixel_std
-
-        x = self.encoder.forward_features(x)
-
-        if x.dim() == 4:
-            x = x.flatten(2).transpose(1, 2)
+        if self.text_conditioning:
+            pass
         else:
-            x = x[:, self.encoder.num_prefix_tokens :]
+            x = self.encoder.forward_features(x)
+            if x.dim() == 4:
+                x = x.flatten(2).transpose(1, 2)
+            else:
+                x = x[:, self.encoder.num_prefix_tokens :]
 
         return x
