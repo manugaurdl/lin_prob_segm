@@ -148,9 +148,8 @@ class Dataset(torch.utils.data.Dataset):
             img, target = self.transforms(img, target)
         
         #bg not sampled, if bg is sampled len(x)-1 must be changed to len(x)
-        target["labels"] = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))]
-        
-        return img, target
+        sampled_obj_class = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))]
+        return img, target, sampled_obj_class
 
     def _load_zips(self) -> Tuple[zipfile.ZipFile, zipfile.ZipFile]:
         worker = get_worker_info()

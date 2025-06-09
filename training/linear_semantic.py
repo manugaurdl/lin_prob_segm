@@ -67,12 +67,11 @@ class LinearSemantic(LightningModule):
         log_prefix=None,
         is_notebook=False,
     ):
-        imgs, targets = batch #both are lists
-        if len(targets)>1:
-            print("$$$"*1000)
-            raise Exception("targets list length > 1")
+        #collate returns a list and not a tensor
+        imgs, targets, sampled_obj_class = batch # list of imgs  : (3,512,683) tensor each ; converted to crops=(B,3,512,512) tensor
         crops, origins, img_sizes = self.window_imgs_semantic(imgs)
-        crop_logits = self(crops, label=targets[0]['labels'])
+        # open("/home/manugaur/delete.txt", "w").write(f"{} \n")
+        crop_logits = self(crops, label=torch.cat(sampled_obj_class).expand(crops.size(0)))
         crop_logits = F.interpolate(crop_logits, self.img_size, mode="bilinear")
         logits = self.revert_window_logits_semantic(crop_logits, origins, img_sizes)
 

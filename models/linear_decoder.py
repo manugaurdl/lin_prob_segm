@@ -58,7 +58,7 @@ class LinearDecoder(Encoder):
                 torch.save(self.class_text_feats, os.path.join(data_dir, "ade150class_roberta_feats.pt"))
 
     def forward(self, x: torch.Tensor, label=None) -> torch.Tensor:
-        x = super().forward(x, text_feat=(self.class_text_feats['feats'][label], self.class_text_feats['pad_mask'][label]))
+        x = super().forward(x, text_cond=(self.class_text_feats['feats'][label], self.class_text_feats['pad_mask'][label]))
         x = self.head(x)
         x = x.transpose(1, 2)
 

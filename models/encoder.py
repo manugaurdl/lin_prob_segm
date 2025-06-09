@@ -191,7 +191,6 @@ class Encoder(nn.Module):
                 )
 
             self.encoder.pos_embed = nn.Parameter(pos_embed)
-        import ipdb;ipdb.set_trace()
 
     @staticmethod
     def interpolate_rel_pos(
@@ -218,11 +217,11 @@ class Encoder(nn.Module):
 
         return nn.Parameter(rel_pos)
 
-    def forward(self, x: torch.Tensor, text_feat=None):
+    def forward(self, x: torch.Tensor, text_cond=None):
         x = (x - self.pixel_mean) / self.pixel_std
         
-        if self.text_conditioning and (text_feat is not None):
-            x = self.encoder(x, text_feat[0], text_feat[1], get_feats=True)
+        if self.text_conditioning and (text_cond is not None):
+            x = self.encoder(x, text_cond[0], text_cond[1], get_feats=True)
         else:
             x = self.encoder.forward_features(x)
             if x.dim() == 4:
