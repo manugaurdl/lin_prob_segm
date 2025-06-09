@@ -44,13 +44,17 @@ class Encoder(nn.Module):
                 rank = 8,
                 last_n_blocks=6
                 )
-                self.model = self.encoder
-                self.encoder = self.encoder.visual_encoder.trunk
+                if (img_size[0] % patch_size) != 0:
+                    self.encoder.visual_encoder.trunk.patch_embed.dynamic_img_pad = True
+
+                # self.model = self.encoder
+                # self.encoder = self.encoder.visual_encoder.trunk
 
             else:
                 encoder_name = f"hf-hub:timm/{encoder_name}"
                 self.encoder, self.preprocess = create_model_from_pretrained(encoder_name)
                 self.encoder = self.encoder.visual.trunk
+                self.encoder.patch_embed.dynamic_img_pad = True
             
             norm_mean = norm_std = (0.5, 0.5, 0.5)
             self.encoder.embed_dim = 1152
@@ -135,7 +139,7 @@ class Encoder(nn.Module):
                         block.window_size,
                         old_window_size,
                     )
-        breakpoint()
+
         if hasattr(self.encoder, "patch_embed"):
             if (
                 self.encoder.patch_embed.grid_size[0]
@@ -157,7 +161,7 @@ class Encoder(nn.Module):
             self.encoder.patch_embed.grid_size = self.grid_size
             self.encoder.patch_embed.num_patches = self.grid_size[0] * self.grid_size[1]
             self.encoder.patch_embed.img_size = img_size
-        breakpoint()
+        
         if hasattr(self.encoder, "pos_embed"):
             if self.encoder.pos_embed.dim() == 4:
                 pos_embed = resample_abs_pos_embed_nhwc(
@@ -187,7 +191,7 @@ class Encoder(nn.Module):
                 )
 
             self.encoder.pos_embed = nn.Parameter(pos_embed)
-        breakpoint()
+        import ipdb;ipdb.set_trace()
 
     @staticmethod
     def interpolate_rel_pos(
@@ -218,7 +222,7 @@ class Encoder(nn.Module):
         x = (x - self.pixel_mean) / self.pixel_std
         
         if self.text_conditioning and (text_feat is not None):
-            x = self.model(x, text_feat[0], text_feat[1], get_feats=True)
+            x = self.encoder(x, text_feat[0], text_feat[1], get_feats=True)
         else:
             x = self.encoder.forward_features(x)
             if x.dim() == 4:
