@@ -89,6 +89,10 @@ class LightningCLI(cli.LightningCLI):
         parser.add_argument('--text_conditioning', action='store_true', help='using text_conditioned visual encoder')
         parser.link_arguments("text_conditioning", "model.init_args.network.init_args.text_conditioning")
         parser.link_arguments("text_conditioning", "model.init_args.text_conditioning")
+        parser.add_argument('--original_res', type=int, help='original img_res your vit was trained on')
+        parser.link_arguments("original_res", "model.init_args.network.init_args.original_res")
+        parser.add_argument('--ckpt_name', type=str, help='your finetuned vit checkpname')
+        parser.link_arguments("ckpt_name", "model.init_args.network.init_args.ckpt_name")
 
     def fit(self, model, **kwargs):
         if self.config.fit.wandb:

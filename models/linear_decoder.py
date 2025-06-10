@@ -24,20 +24,22 @@ class LinearDecoder(Encoder):
         text_conditioning,
         data_dir,
         img_size,
+        original_res,
         sub_norm=False,
         patch_size=16,
         pretrained=True,
-        ckpt_path=""
+        ckpt_name=""
     ):
         self.text_conditioning = text_conditioning
         super().__init__(
             text_conditioning,
             encoder_name=encoder_name,
             img_size=img_size,
+            original_res = original_res,
             sub_norm=sub_norm,
             patch_size=patch_size,
             pretrained=pretrained,
-            ckpt_path=ckpt_path,
+            ckpt_name=ckpt_name,
         )
         self.head = nn.Linear(self.embed_dim, num_classes)
 
