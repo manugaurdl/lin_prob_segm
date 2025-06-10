@@ -46,7 +46,8 @@ class Encoder(nn.Module):
                 )
                 if (img_size[0] % patch_size) != 0:
                     self.encoder.visual_encoder.trunk.patch_embed.dynamic_img_pad = True
-
+                import ipdb;ipdb.set_trace()
+                torch.load("/storage/users/manugaur/mllm_inversion/checkpoints/zeroinit_lincls_heatmapnotresized_flip.2_colorjit.7_grayscale.1_ffnmult2_interleaved_gatedcrossattn_lr3e5_gradclip20_sigliplorar8n6all6w_bsz42.pth")
                 # self.model = self.encoder
                 # self.encoder = self.encoder.visual_encoder.trunk
 
