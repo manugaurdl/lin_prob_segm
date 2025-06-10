@@ -19,6 +19,7 @@ class LinearSemantic(LightningModule):
         network: nn.Module,
         num_metrics: int,
         num_classes: int,
+        text_conditioning: bool,
         ignore_idx: int,
         img_size: tuple[int, int],
         lr: float = 1e-4,
@@ -35,20 +36,22 @@ class LinearSemantic(LightningModule):
             lr=lr,
             lr_multiplier_encoder=lr_multiplier_encoder,
         )
-
         self.save_hyperparameters()
 
         self.ignore_idx = ignore_idx
         self.poly_lr_decay_power = poly_lr_decay_power
-
+        self.text_conditioning = text_conditioning
+        
         self.criterion = nn.CrossEntropyLoss(ignore_index=self.ignore_idx)
-
         self.init_metrics_semantic(num_classes, ignore_idx, num_metrics)
 
     def training_step(self, batch, batch_idx):
-        imgs, targets = batch
-
-        logits = self(imgs)
+        imgs = batch[0]
+        targets = batch[1]
+        sampled_obj = None
+        if self.text_conditioning:
+            sampled_obj = batch[2]
+        logits = self(imgs, obj_label=sampled_obj)
         logits = F.interpolate(logits, self.img_size, mode="bilinear")
 
         targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)
@@ -71,7 +74,7 @@ class LinearSemantic(LightningModule):
         imgs, targets, sampled_obj_class = batch # list of imgs  : (3,512,683) tensor each ; converted to crops=(B,3,512,512) tensor
         crops, origins, img_sizes = self.window_imgs_semantic(imgs)
         # open("/home/manugaur/delete.txt", "w").write(f"{} \n")
-        crop_logits = self(crops, label=torch.cat(sampled_obj_class).expand(crops.size(0)))
+        crop_logits = self(crops, obj_label=torch.cat(sampled_obj_class).expand(crops.size(0)))
         crop_logits = F.interpolate(crop_logits, self.img_size, mode="bilinear")
         logits = self.revert_window_logits_semantic(crop_logits, origins, img_sizes)
 

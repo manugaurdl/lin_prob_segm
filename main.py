@@ -88,6 +88,7 @@ class LightningCLI(cli.LightningCLI):
         parser.add_argument('--run_name', type = str, help='wandb run_name')
         parser.add_argument('--text_conditioning', action='store_true', help='using text_conditioned visual encoder')
         parser.link_arguments("text_conditioning", "model.init_args.network.init_args.text_conditioning")
+        parser.link_arguments("text_conditioning", "model.init_args.text_conditioning")
 
     def fit(self, model, **kwargs):
         if self.config.fit.wandb:

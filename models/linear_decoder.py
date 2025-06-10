@@ -3,6 +3,11 @@ import torch.nn as nn
 import torch
 import os
 from torch.nn.utils.rnn import pad_sequence
+import traceback
+def print_stack():
+    print("Call stack:")
+    for line in traceback.format_stack():
+        print(line.strip())
 
 def pad_text_feats(text_feats):
     padded_text_feats = pad_sequence(text_feats, batch_first = True, padding_value = 0)
@@ -35,7 +40,7 @@ class LinearDecoder(Encoder):
             ckpt_path=ckpt_path,
         )
         self.head = nn.Linear(self.embed_dim, num_classes)
-            
+
         if self.text_conditioning:
             #load roberta feats for class labels
             # {'feats': class_text_feats, 'pad_mask': padding_mask}
@@ -57,9 +62,10 @@ class LinearDecoder(Encoder):
                 self.class_text_feats = {'feats': class_text_feats, 'pad_mask': padding_mask.to(class_text_feats.device)}
                 torch.save(self.class_text_feats, os.path.join(data_dir, "ade150class_roberta_feats.pt"))
 
-    def forward(self, x: torch.Tensor, label=None) -> torch.Tensor:
-        x = super().forward(x, text_cond=(self.class_text_feats['feats'][label], self.class_text_feats['pad_mask'][label]))
+    def forward(self, x: torch.Tensor, obj_label=None) -> torch.Tensor:
+        x = super().forward(x, text_cond=(self.class_text_feats['feats'][obj_label], self.class_text_feats['pad_mask'][obj_label]))
         x = self.head(x)
         x = x.transpose(1, 2)
 
         return x.reshape(x.shape[0], -1, *self.grid_size)
+# open("/home/manugaur/delete.txt", "a").write(f"{obj_label.shape} --> {self.class_text_feats['pad_mask'][obj_label].shape} \n")

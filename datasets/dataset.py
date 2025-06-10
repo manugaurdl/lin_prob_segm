@@ -147,6 +147,9 @@ class Dataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             img, target = self.transforms(img, target)
         
+        if len(target['labels'])==1:
+            return img, target, target['labels'][torch.tensor([0])]
+
         #bg not sampled, if bg is sampled len(x)-1 must be changed to len(x)
         sampled_obj_class = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))]
         return img, target, sampled_obj_class

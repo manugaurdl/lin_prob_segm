@@ -39,13 +39,13 @@ class LightningDataModule(lightning.LightningDataModule):
 
     @staticmethod
     def train_collate(batch):
-        imgs, targets = [], []
-
-        for img, target in batch:
+        imgs, targets, sampled_objects = [], [], []
+        for img, target, sampled_obj in batch:
             imgs.append(img)
+            sampled_objects.append(sampled_obj)
             targets.append(target)
 
-        return torch.stack(imgs), targets
+        return torch.stack(imgs), targets, torch.cat(sampled_objects)
 
     @staticmethod
     def eval_collate(batch):

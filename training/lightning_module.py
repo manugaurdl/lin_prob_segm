@@ -36,10 +36,9 @@ class LightningModule(lightning.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.lr_multiplier_encoder = lr_multiplier_encoder
-
         for param in self.network.encoder.parameters():
             param.requires_grad = not freeze_encoder
-
+        self.network.encoder.eval()
         self.log = torch.compiler.disable(self.log)  # type: ignore
         self.class_idx2label = {int(_.split("\t")[0]) : _.split("\t")[-1][:-1].strip() for _ in open('./objectInfo150.txt', "r").readlines
 ()[1:]}
@@ -65,9 +64,9 @@ class LightningModule(lightning.LightningModule):
                 preds[i][None, ...], targets[i][None, ...]
             )
 
-    def forward(self, imgs, label=None):
+    def forward(self, imgs, obj_label=None):
         x = imgs / 255.0
-        output = self.network(x, label=label)
+        output = self.network(x, obj_label=obj_label)
 
         if not self.training and isinstance(output, tuple):
             return (y[-1] for y in self.network(x))
