@@ -17,22 +17,30 @@ import os
 
 class Encoder(nn.Module):
     
-    def load_checkpoint(self, model, ckpt_dir, ckpt_name):
+    def load_checkpoint(self, ckpt_dir, ckpt_name, patch_size, img_size):
         pretrained_wts = torch.load(os.path.join(ckpt_dir, ckpt_name))['model_state_dict']
-        num_weights = len(pretrained_wts)
-        print(len(pretrained_wts))
+
+        #resize positional embedding
+        pos_emb_param_name = [k for k in pretrained_wts.keys() if 'pos_emb' in k][0]
+        H = W = (img_size[0]//patch_size) if img_size[0] % patch_size == 0 else (img_size[0]//patch_size)+1
+        pretrained_wts[pos_emb_param_name] = nn.Parameter(
+                resample_abs_pos_embed(
+                    pretrained_wts[pos_emb_param_name],
+                    (H, W),
+                    num_prefix_tokens=0,
+                    ))
         
+        num_weights = len(pretrained_wts)
         for k,v in pretrained_wts.copy().items():
             if "visual_encoder.siglip.visual" in k:
                 new_k = k.replace("visual_encoder.siglip.visual", "visual_encoder")
                 del pretrained_wts[k]
                 pretrained_wts[new_k] = v        
-        print(len(pretrained_wts))
-        
+        #create state_dict to load into model                
         weights_loaded = set()
         state_dict = {}
         c = 0
-        for k,v in model.state_dict().items():
+        for k,v in self.encoder.state_dict().items():
             if k in pretrained_wts: 
                 state_dict[k] = pretrained_wts[k]
                 weights_loaded.add(k)
@@ -40,8 +48,8 @@ class Encoder(nn.Module):
             else:
                 state_dict[k] = v
         print(f"params that can't be loaded into the model :\n {set(list(pretrained_wts.keys())) - weights_loaded}")
-
-        # model.load_state_dict(state_dict)
+        #load
+        self.encoder.load_state_dict(state_dict)
         print(f"| LOADED {c}/{num_weights} WEIGHTS")
 
     def __init__(
@@ -63,7 +71,7 @@ class Encoder(nn.Module):
                 self.encoder = FlamingoCrossAttn(
                         visual_encoder="siglip",
                         text_encoder ="roberta",
-                        img_res = original_res,
+                        img_res = img_size[0],
                         patch_size = patch_size,
                         cross_attn_layers =[1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25],
                         cross_attn_ffn_mult =2,
@@ -74,17 +82,15 @@ class Encoder(nn.Module):
                 last_n_blocks=6
                 )
                 self.load_checkpoint(
-                    self.encoder,
                     ckpt_dir = "/storage/users/manugaur/mllm_inversion/checkpoints",
                     ckpt_name = ckpt_name,
+                    patch_size = patch_size,
+                    img_size = img_size,
                     )
-                import ipdb;ipdb.set_trace()
-
                 if (img_size[0] % patch_size) != 0:
-                    self.encoder.visual_encoder.trunk.patch_embed.dynamic_img_pad = True
+                    self.encoder.visual_encoder.trunk.patch_embed.dynamic_img_pad = True #patch_emb conv2D pads the img
                 # self.model = self.encoder
                 # self.encoder = self.encoder.visual_encoder.trunk
-
             else:
                 encoder_name = f"hf-hub:timm/{encoder_name}"
                 self.encoder, self.preprocess = create_model_from_pretrained(encoder_name)
@@ -134,8 +140,8 @@ class Encoder(nn.Module):
 
         if hasattr(self.encoder, "neck"):
             self.encoder.neck = nn.Identity()
-        if ckpt_path:
-            self.encoder.load_state_dict(torch.load(ckpt_path))
+        # if ckpt_path:
+        #     self.encoder.load_state_dict(torch.load(ckpt_path))
 
         if hasattr(self.encoder, "rope"):
             self.encoder.rope = timm.create_model(
