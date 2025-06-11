@@ -46,6 +46,7 @@ class LinearSemantic(LightningModule):
         self.init_metrics_semantic(num_classes, ignore_idx, num_metrics)
 
     def training_step(self, batch, batch_idx):
+
         imgs = batch[0]
         targets = batch[1]
         sampled_obj = None
@@ -71,10 +72,13 @@ class LinearSemantic(LightningModule):
         is_notebook=False,
     ):
         #collate returns a list and not a tensor
-        imgs, targets, sampled_obj_class = batch # list of imgs  : (3,512,683) tensor each ; converted to crops=(B,3,512,512) tensor
+        #list of imgs  : (3,512,683) tensor each ; converted to crops=(B,3,512,512) tensor
+        imgs, targets, sampled_obj_class = batch
+        if self.text_conditioning:
+            sampled_obj_class = torch.cat(sampled_obj_class).expand(crops.size(0))
+        
         crops, origins, img_sizes = self.window_imgs_semantic(imgs)
-        # open("/home/manugaur/delete.txt", "w").write(f"{} \n")
-        crop_logits = self(crops, obj_label=torch.cat(sampled_obj_class).expand(crops.size(0)))
+        crop_logits = self(crops, obj_label=sampled_obj_class)
         crop_logits = F.interpolate(crop_logits, self.img_size, mode="bilinear")
         logits = self.revert_window_logits_semantic(crop_logits, origins, img_sizes)
 

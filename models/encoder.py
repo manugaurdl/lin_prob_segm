@@ -261,7 +261,7 @@ class Encoder(nn.Module):
     def forward(self, x: torch.Tensor, text_cond=None):
         x = (x - self.pixel_mean) / self.pixel_std
         
-        if self.text_conditioning and (text_cond is not None):
+        if self.text_conditioning:
             x = self.encoder(x, text_cond[0], text_cond[1], get_feats=True)
         else:
             x = self.encoder.forward_features(x)

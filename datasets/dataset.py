@@ -22,6 +22,7 @@ class Dataset(torch.utils.data.Dataset):
         zip_path: Path,
         img_suffix: str,
         target_suffix: str,
+        text_conditioning:bool,
         ignore_idx: Optional[int] = None,
         transforms: Optional[Callable] = None,
         img_stem_suffix: str = "",
@@ -40,7 +41,7 @@ class Dataset(torch.utils.data.Dataset):
         self.ignore_idx = ignore_idx
         self.transforms = transforms
         self.class_mapping = class_mapping
-
+        self.text_conditioning = text_conditioning
         self.zip = None
         self.target_zip = None
         img_zip, target_zip = self._load_zips()
@@ -95,13 +96,18 @@ class Dataset(torch.utils.data.Dataset):
             self.targets.append(target_filename)
 
     def __getitem__(self, index: int):
+        """
+        class_mapping : i --> i-1
+        background (0) is removed.
+        For each labels[idx] for ex. 'chair', the corresponding mask[idx] is target==labels[idx] tensor.
+        """
         img_zip, target_zip = self._load_zips()
 
         with img_zip.open(self.imgs[index]) as img:
             img = tv_tensors.Image(Image.open(img).convert("RGB"))
 
         with target_zip.open(self.targets[index]) as target:
-            target = tv_tensors.Mask(Image.open(target))
+            target = tv_tensors.Mask(Image.open(target)) #load segm obj mask
 
         if img.shape[-2:] != target.shape[-2:]:
             target = F.resize(
@@ -130,9 +136,8 @@ class Dataset(torch.utils.data.Dataset):
 
             if self.class_mapping is not None:
                 if class_id not in self.class_mapping:
-                    continue
-
-                class_id = self.class_mapping[class_id]
+                    continue #zero is not in ade20k class_mappings
+                class_id = self.class_mapping[class_id] #i --> i-1
 
             #nothing is ignore, cus class_idx=0 is actually 'wall'
             if class_id != self.ignore_idx:
@@ -147,12 +152,16 @@ class Dataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             img, target = self.transforms(img, target)
         
-        if len(target['labels'])==1:
-            return img, target, target['labels'][torch.tensor([0])]
+        if not self.text_conditioning:
+            return img, target, None    
+        else:
+            # if len(target['labels'])==1:
+            #     return img, target, target['labels'][torch.tensor([0])]
 
-        #bg not sampled, if bg is sampled len(x)-1 must be changed to len(x)
-        sampled_obj_class = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))]
-        return img, target, sampled_obj_class
+            # sampled_obj_class = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))] #use this if target['labels'] considers background
+            # sampled_idx = torch.randint(len(target['labels']), (1,))
+            # sampled_obj_class = target['labels'][sampled_idx]
+            return img, target, sampled_obj_class
 
     def _load_zips(self) -> Tuple[zipfile.ZipFile, zipfile.ZipFile]:
         worker = get_worker_info()

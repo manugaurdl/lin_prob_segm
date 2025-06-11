@@ -30,7 +30,6 @@ class LinearDecoder(Encoder):
         pretrained=True,
         ckpt_name=""
     ):
-        self.text_conditioning = text_conditioning
         super().__init__(
             text_conditioning,
             encoder_name=encoder_name,
@@ -42,7 +41,8 @@ class LinearDecoder(Encoder):
             ckpt_name=ckpt_name,
         )
         self.head = nn.Linear(self.embed_dim, num_classes)
-
+        self.text_conditioning = text_conditioning
+        
         if self.text_conditioning:
             #load roberta feats for class labels
             # {'feats': class_text_feats, 'pad_mask': padding_mask}
@@ -65,6 +65,7 @@ class LinearDecoder(Encoder):
                 torch.save(self.class_text_feats, os.path.join(data_dir, "ade150class_roberta_feats.pt"))
 
     def forward(self, x: torch.Tensor, obj_label=None) -> torch.Tensor:
+        
         if self.text_conditioning:
             x = super().forward(x, text_cond=(self.class_text_feats['feats'][obj_label], self.class_text_feats['pad_mask'][obj_label]))
         else:

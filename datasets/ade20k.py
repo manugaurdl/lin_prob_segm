@@ -14,6 +14,7 @@ class ADE20K(LightningDataModule):
         root,
         devices,
         num_workers: int,
+        text_conditioning,
         img_size: tuple[int, int] = (512, 512),
         batch_size: int = 1,
         num_classes: int = 150,
@@ -30,9 +31,11 @@ class ADE20K(LightningDataModule):
             num_metrics=num_metrics,
             ignore_idx=ignore_idx,
             img_size=img_size,
+            text_conditioning = text_conditioning
         )
         self.save_hyperparameters()
         self.transforms = Transforms(img_size=img_size, scale_range=scale_range)
+        self.text_conditioning = text_conditioning
 
     def setup(self, stage: Union[str, None] = None) -> LightningDataModule:
         dataset_kwargs = {
@@ -42,6 +45,7 @@ class ADE20K(LightningDataModule):
             "target_zip_path": Path(self.root, "ADEChallengeData2016.zip"),
             "class_mapping": get_ade20k_mapping(),
             "ignore_idx": self.ignore_idx,
+            "text_conditioning": self.text_conditioning,
         }
         self.train_dataset = Dataset(
             img_folder_path_in_zip=Path("./ADEChallengeData2016/images/training"),

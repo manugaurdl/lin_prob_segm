@@ -12,6 +12,7 @@ class LightningDataModule(lightning.LightningDataModule):
         batch_size: int,
         num_workers: int,
         img_size: tuple[int, int],
+        text_conditioning: bool,
         num_classes: int,
         num_metrics: int,
         ignore_idx: Optional[int] = None,
@@ -25,7 +26,7 @@ class LightningDataModule(lightning.LightningDataModule):
         self.img_size = img_size
         self.num_classes = num_classes
         self.num_metrics = num_metrics
-
+        self.text_conditioning = text_conditioning
         self.devices = (
             devices if devices == "auto" else _parse_gpu_ids(devices, include_cuda=True)
         )
@@ -42,9 +43,11 @@ class LightningDataModule(lightning.LightningDataModule):
         imgs, targets, sampled_objects = [], [], []
         for img, target, sampled_obj in batch:
             imgs.append(img)
-            sampled_objects.append(sampled_obj)
             targets.append(target)
-
+            if sampled_obj is not None:
+                sampled_objects.append(sampled_obj)
+        if sampled_obj is None:
+            return torch.stack(imgs), targets, None
         return torch.stack(imgs), targets, torch.cat(sampled_objects)
 
     @staticmethod
