@@ -306,4 +306,4 @@ class LightningModule(lightning.LightningModule):
         obj_id = targets['labels'][sampled_idx]
         per_pixel_target[targets['masks'][sampled_idx]] = obj_id
 
-        return [per_pixel_target], obj_id
+        return [per_pixel_target], obj_id.unsqueeze(0)

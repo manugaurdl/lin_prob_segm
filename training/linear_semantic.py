@@ -54,7 +54,7 @@ class LinearSemantic(LightningModule):
         else:
             targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)
         targets = torch.stack(targets).long() 
-            
+
         logits = self(imgs, obj_label=self.obj_id)
         logits = F.interpolate(logits, self.img_size, mode="bilinear")
         

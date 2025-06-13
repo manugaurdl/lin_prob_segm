@@ -63,7 +63,7 @@ class LinearDecoder(Encoder):
                 
                 self.class_text_feats = {'feats': class_text_feats, 'pad_mask': padding_mask.to(class_text_feats.device)}
                 torch.save(self.class_text_feats, os.path.join(data_dir, "ade150class_roberta_feats.pt"))
-
+        
     def forward(self, x: torch.Tensor, obj_label) -> torch.Tensor:
         
         if self.text_conditioning:
