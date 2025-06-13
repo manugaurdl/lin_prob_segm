@@ -146,11 +146,6 @@ class Dataset(torch.utils.data.Dataset):
                 masks.append(target == label_id)
                 labels.append(torch.tensor([class_id]))
         
-        if self.text_conditioning:
-            rand_idx = random.randint(0,len(masks)-1)
-            masks = [masks[rand_idx]]
-            labels = [labels[rand_idx]]
-        
         target = {
             "masks": tv_tensors.Mask(torch.stack(masks)),
             "labels": torch.cat(labels),

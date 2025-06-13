@@ -44,18 +44,20 @@ class LinearSemantic(LightningModule):
         
         self.criterion = nn.CrossEntropyLoss(ignore_index=self.ignore_idx)
         self.init_metrics_semantic(num_classes, ignore_idx, num_metrics)
-
-    def training_step(self, batch, batch_idx, sampled_obj=None):
+        self.obj_id = torch.tensor([-1]) #its overriden if text_conditioning
+    
+    def training_step(self, batch, batch_idx):
 
         imgs, targets = batch
         if self.text_conditioning:
-            sampled_obj = targets[0]['labels']
-        logits = self(imgs, obj_label=sampled_obj)
+            targets, self.obj_id = self.sampled_obj_to_per_pixel_targets_semantic(targets[0], self.ignore_idx)
+        else:
+            targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)
+        targets = torch.stack(targets).long() 
+            
+        logits = self(imgs, obj_label=self.obj_id)
         logits = F.interpolate(logits, self.img_size, mode="bilinear")
         
-        targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)#list
-        targets = torch.stack(targets).long()
-
         loss_total = self.criterion(logits, targets)
         self.log("trainer/loss", loss_total, sync_dist=True, prog_bar=True)
 
@@ -69,24 +71,23 @@ class LinearSemantic(LightningModule):
         log_prefix=None,
         is_notebook=False,
     ):
-        #collate returns a list and not a tensor
         #list of imgs  : (3,512,683) tensor each ; converted to crops=(B,3,512,512) tensor
         imgs, targets = batch
-        crops, origins, img_sizes = self.window_imgs_semantic(imgs)
         
         if self.text_conditioning:
-            # sampled_obj_class = torch.cat(sampled_obj_class).expand(crops.size(0))
-            sampled_obj_class = targets[0]['labels'].expand(crops.size(0))
-            crop_logits = self(crops, obj_label=sampled_obj_class)
-
-        crop_logits = self(crops)
+            targets, self.obj_id = self.sampled_obj_to_per_pixel_targets_semantic(targets[0], self.ignore_idx)
+        else:
+            targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)
+        
+        crops, origins, img_sizes = self.window_imgs_semantic(imgs)
+        
+        crop_logits = self(crops, obj_label=self.obj_id.expand(crops.size(0)))
         crop_logits = F.interpolate(crop_logits, self.img_size, mode="bilinear")
         logits = self.revert_window_logits_semantic(crop_logits, origins, img_sizes)
 
         if is_notebook:
             return logits
 
-        targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)
         self.update_metrics(logits, targets, dataloader_idx)
 
         if batch_idx == 0:

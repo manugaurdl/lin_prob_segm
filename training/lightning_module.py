@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from torch.nn.functional import interpolate
 from torchvision.transforms.v2.functional import resize
+import random
 
 import traceback
 def print_stack():
@@ -64,7 +65,7 @@ class LightningModule(lightning.LightningModule):
                 preds[i][None, ...], targets[i][None, ...]
             )
 
-    def forward(self, imgs, obj_label=torch.tensor([-1])):
+    def forward(self, imgs, obj_label):
         x = imgs / 255.0
         output = self.network(x, obj_label=obj_label)
 
@@ -286,3 +287,23 @@ class LightningModule(lightning.LightningModule):
             per_pixel_targets.append(per_pixel_target)
 
         return per_pixel_targets
+
+
+    @staticmethod
+    @torch.compiler.disable
+    def sampled_obj_to_per_pixel_targets_semantic(
+        target: list[dict],
+        ignore_idx,
+    ):
+        per_pixel_target = torch.full(
+            targets["masks"].shape[-2:],
+            ignore_idx,
+            dtype=targets["labels"].dtype,
+            device=targets["labels"].device,
+        ) #init (H,W) mask filled with 255
+
+        sampled_idx = random.randint(0,len(targets['labels'])-1)
+        obj_id = targets['labels'][sampled_idx]
+        per_pixel_target[targets['masks'][sampled_idx]] = obj_id
+
+        return [per_pixel_target], obj_id
