@@ -266,8 +266,10 @@ class Encoder(nn.Module):
         else:
             x = self.encoder.forward_features(x)
             if x.dim() == 4:
+                print(" ")
                 x = x.flatten(2).transpose(1, 2)
             else:
+                print(" ")
                 x = x[:, self.encoder.num_prefix_tokens :]
 
         return x
