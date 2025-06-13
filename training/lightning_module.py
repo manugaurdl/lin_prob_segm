@@ -292,7 +292,7 @@ class LightningModule(lightning.LightningModule):
     @staticmethod
     @torch.compiler.disable
     def sampled_obj_to_per_pixel_targets_semantic(
-        target: list[dict],
+        targets: list[dict],
         ignore_idx,
     ):
         per_pixel_target = torch.full(
