@@ -258,7 +258,7 @@ class Encoder(nn.Module):
 
         return nn.Parameter(rel_pos)
 
-    def forward(self, x: torch.Tensor, text_cond=None):
+    def forward(self, x: torch.Tensor, text_cond):
         x = (x - self.pixel_mean) / self.pixel_std
         
         if self.text_conditioning:

@@ -64,7 +64,7 @@ class LightningModule(lightning.LightningModule):
                 preds[i][None, ...], targets[i][None, ...]
             )
 
-    def forward(self, imgs, obj_label=None):
+    def forward(self, imgs, obj_label=torch.tensor([-1])):
         x = imgs / 255.0
         output = self.network(x, obj_label=obj_label)
 
@@ -278,10 +278,10 @@ class LightningModule(lightning.LightningModule):
                 ignore_idx,
                 dtype=target["labels"].dtype,
                 device=target["labels"].device,
-            )
+            ) #h,w tensor filled with 255
 
             for i, mask in enumerate(target["masks"]):
-                per_pixel_target[mask] = target["labels"][i]
+                per_pixel_target[mask] = target["labels"][i] #masked_fill
 
             per_pixel_targets.append(per_pixel_target)
 

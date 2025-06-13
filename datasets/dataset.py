@@ -11,6 +11,8 @@ from torch.utils.data import get_worker_info
 from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
 import traceback
+import random
+
 def print_stack():
     print("Call stack:")
     for line in traceback.format_stack():
@@ -143,7 +145,12 @@ class Dataset(torch.utils.data.Dataset):
             if class_id != self.ignore_idx:
                 masks.append(target == label_id)
                 labels.append(torch.tensor([class_id]))
-
+        
+        if self.text_conditioning:
+            rand_idx = random.randint(0,len(masks)-1)
+            masks = [masks[rand_idx]]
+            labels = [labels[rand_idx]]
+        
         target = {
             "masks": tv_tensors.Mask(torch.stack(masks)),
             "labels": torch.cat(labels),
@@ -152,16 +159,17 @@ class Dataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             img, target = self.transforms(img, target)
         
-        if not self.text_conditioning:
-            return img, target, None    
-        else:
-            # if len(target['labels'])==1:
-            #     return img, target, target['labels'][torch.tensor([0])]
+        return img, target
+        # if not self.text_conditioning:
+        #     return img, target, None    
+        # else:
+        #     # if len(target['labels'])==1:
+        #     #     return img, target, target['labels'][torch.tensor([0])]
 
-            # sampled_obj_class = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))] #use this if target['labels'] considers background
-            # sampled_idx = torch.randint(len(target['labels']), (1,))
-            # sampled_obj_class = target['labels'][sampled_idx]
-            return img, target, sampled_obj_class
+        #     # sampled_obj_class = target['labels'][target['labels']!=0][torch.randint(len(target['labels'])-1, (1,))] #use this if target['labels'] considers background
+        #     # sampled_idx = torch.randint(len(target['labels']), (1,))
+        #     # sampled_obj_class = target['labels'][sampled_idx]
+        #     return img, target, sampled_obj_class
 
     def _load_zips(self) -> Tuple[zipfile.ZipFile, zipfile.ZipFile]:
         worker = get_worker_info()
