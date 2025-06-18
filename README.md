@@ -1,3 +1,8 @@
+### run script 
+```
+python main.py fit -c configs/ade20k_linear_semantic.yaml --model.network.encoder_name ViT-SO400M-14-SigLIP  --model.freeze_encoder True --data.num_workers 12 --root /storage/users/manugaur/benchmark-vfm-ss --ckpt_name heatmapnotresized_flip.2_colorjit.7_grayscale.1_ffnmult2_interleaved_gatedcrossattn_lr3e5_gradclip20_sigliplorar8n1all6w_bsz42.pth --run_name siglipSO400_182res_text_cond_400ksteps --wandb --original_res 182 --text_conditioning --trainer.max_steps 400000
+```
+
 # Code for ["How to Benchmark Vision Foundation Models for Semantic Segmentation?"](https://tue-mps.github.io/benchmark-vfm-ss/) (CVPR'24 Foundation Models Workshop)
 
 📢 **March 26, 2025** — Released our follow-up work: [Encoder-only Mask Transformer (EoMT)](https://www.tue-mps.org/eomt/)
