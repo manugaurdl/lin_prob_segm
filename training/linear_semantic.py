@@ -78,12 +78,12 @@ class LinearSemantic(LightningModule):
         if self.text_conditioning:       
             targets, self.obj_id = self.individual_obj_to_per_pixel_targets_semantic(targets[0], self.ignore_idx) #maybe preprocess this; skip the for loop
             # logits = self(img.unsqueeze(0).expand(len(self.obj_id),-1,-1,-1), obj_label=self.obj_id)
-            logits = self(img.unsqueeze(0).repeat(len(self.obj_id),1,1,1), obj_label=self.obj_id)
-            logits = F.interpolate(logits, imgs[0].size()[-2:], mode="bilinear")
+            img = img.unsqueeze(0).repeat(len(self.obj_id),1,1,1)
         else:
             targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)        
-            logits = self(img, obj_label=self.obj_id)
-            logits = F.interpolate(logits, imgs[0].size()[-2:], mode="bilinear")
+        
+        logits = self(img, obj_label=self.obj_id)
+        logits = F.interpolate(logits, imgs[0].size()[-2:], mode="bilinear")
 
         # logits = self.revert_window_logits_semantic(crop_logits, origins, img_sizes)
         ##### sliding window eval
