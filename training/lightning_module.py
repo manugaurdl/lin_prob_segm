@@ -286,7 +286,7 @@ class LightningModule(lightning.LightningModule):
 
             per_pixel_targets.append(per_pixel_target)
 
-        return per_pixel_targets
+        return torch.stack(per_pixel_targets).long()
 
 
     @staticmethod
@@ -295,6 +295,11 @@ class LightningModule(lightning.LightningModule):
         targets: list[dict],
         ignore_idx,
     ):
+        """
+        sample an object class, only that is the target
+        output: (H,W)
+
+        """
         per_pixel_target = torch.full(
             targets["masks"].shape[-2:],
             ignore_idx,
@@ -303,7 +308,31 @@ class LightningModule(lightning.LightningModule):
         ) #init (H,W) mask filled with 255
 
         sampled_idx = random.randint(0,len(targets['labels'])-1)
-        obj_id = targets['labels'][sampled_idx]
-        per_pixel_target[targets['masks'][sampled_idx]] = obj_id
+        obj_label = targets['labels'][sampled_idx]
+        per_pixel_target[targets['masks'][sampled_idx]] = obj_label
 
-        return [per_pixel_target], obj_id.unsqueeze(0)
+        return torch.stack([per_pixel_target]).long(), obj_label.unsqueeze(0)
+
+    @staticmethod
+    @torch.compiler.disable
+    def individual_obj_to_per_pixel_targets_semantic(
+        targets: list[dict],
+        ignore_idx,
+    ):
+        """
+        loop over all present object classes, each target has 1 object class
+        output: (num_classes, H,W)
+        """
+
+        per_pixel_target = torch.full(
+            targets["masks"].shape[-2:],
+            ignore_idx,
+            dtype=targets["labels"].dtype,
+            device=targets["labels"].device,
+        )
+
+        per_pixel_target = per_pixel_target.unsqueeze(0).repeat(len(targets['labels']),1,1)
+        for idx, obj_label in enumerate(targets['labels']):
+            per_pixel_target[idx][targets['masks'][idx]] = obj_label
+
+        return per_pixel_target.long(), targets['labels']

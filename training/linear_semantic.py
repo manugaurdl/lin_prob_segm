@@ -54,8 +54,7 @@ class LinearSemantic(LightningModule):
         if self.text_conditioning:
             targets, self.obj_id = self.sampled_obj_to_per_pixel_targets_semantic(targets[0], self.ignore_idx)
         else:
-            targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)
-        targets = torch.stack(targets).long() 
+            targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx) 
 
         logits = self(imgs, obj_label=self.obj_id)
         logits = F.interpolate(logits, self.img_size, mode="bilinear")
@@ -63,7 +62,7 @@ class LinearSemantic(LightningModule):
         self.log("trainer/loss", loss_total, sync_dist=True, prog_bar=True)
 
         return loss_total
-
+    
     def eval_step(
         self,
         batch,
@@ -75,9 +74,17 @@ class LinearSemantic(LightningModule):
         #list of imgs  : (3,512,683) tensor each ; converted to crops=(B,3,512,512) tensor
         imgs, targets = batch
         img = resize(imgs[0], (512,512))
-        targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)
-        logits = self(img, obj_label=self.obj_id)
-        logits = F.interpolate(logits, imgs[0].size()[-2:], mode="bilinear")
+
+        if self.text_conditioning:       
+            targets, self.obj_id = self.individual_obj_to_per_pixel_targets_semantic(targets[0], self.ignore_idx) #maybe preprocess this; skip the for loop
+            # logits = self(img.unsqueeze(0).expand(len(self.obj_id),-1,-1,-1), obj_label=self.obj_id)
+            logits = self(img.unsqueeze(0).repeat(len(self.obj_id),1,1,1), obj_label=self.obj_id)
+            logits = F.interpolate(logits, imgs[0].size()[-2:], mode="bilinear")
+        else:
+            targets = self.to_per_pixel_targets_semantic(targets, self.ignore_idx)        
+            logits = self(img, obj_label=self.obj_id)
+            logits = F.interpolate(logits, imgs[0].size()[-2:], mode="bilinear")
+
         # logits = self.revert_window_logits_semantic(crop_logits, origins, img_sizes)
         ##### sliding window eval
         # if self.text_conditioning:
