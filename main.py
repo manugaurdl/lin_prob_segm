@@ -136,4 +136,3 @@ def cli_main():
 
 if __name__ == "__main__":
     cli_main()
-#python main.py fit -c configs/ade20k_linear_semantic.yaml --model.network.encoder_name vit_base_patch14_dinov2 --model.freeze_encoder True --data.num_workers 12 --root /storage/users/manugaur/benchmark-vfm-ss/

@@ -203,7 +203,7 @@ class LightningModule(lightning.LightningModule):
         )
 
         return [round(s * factor) for s in size]
-
+    
     def window_imgs_semantic(self, imgs):
         img_sizes = [img.shape[-2:] for img in imgs]
 
