@@ -82,7 +82,7 @@ class Encoder(nn.Module):
                 last_n_blocks=6
                 )
                 self.load_checkpoint(
-                    ckpt_dir = "/storage/users/manugaur/mllm_inversion/checkpoints",
+                    ckpt_dir = "/workspace/manugaur/mllm_inversion/checkpoints",
                     ckpt_name = ckpt_name,
                     patch_size = patch_size,
                     img_size = img_size,
