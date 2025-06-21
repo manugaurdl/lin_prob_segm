@@ -39,6 +39,7 @@ class LinearDecoder(Encoder):
             sub_norm=sub_norm,
             patch_size=patch_size,
             pretrained=pretrained,
+            ckpt_dir=ckpt_dir,
             ckpt_name=ckpt_name,
         )
         self.head = nn.Linear(self.embed_dim, num_classes)
