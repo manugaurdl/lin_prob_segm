@@ -63,23 +63,12 @@ class LightningCLI(cli.LightningCLI):
         parser.link_arguments("root", "trainer.logger.init_args.save_dir")
 
         parser.add_argument("--no_compile", action="store_true")
-
         parser.link_arguments("trainer.devices", "data.init_args.devices")
-
-        parser.link_arguments(
-            "data.init_args.num_classes", "model.init_args.num_classes"
-        )
-        parser.link_arguments(
-            "data.init_args.num_classes",
-            "model.init_args.network.init_args.num_classes",
-        )
+        parser.link_arguments("data.init_args.num_classes", "model.init_args.num_classes")
+        parser.link_arguments("data.init_args.num_classes","model.init_args.network.init_args.num_classes",)
         
-        parser.link_arguments(
-            "data.init_args.num_metrics", "model.init_args.num_metrics"
-        )
-
+        parser.link_arguments("data.init_args.num_metrics", "model.init_args.num_metrics")
         parser.link_arguments("data.init_args.ignore_idx", "model.init_args.ignore_idx")
-
         parser.link_arguments("data.init_args.img_size", "model.init_args.img_size")
         parser.link_arguments(
             "data.init_args.img_size", "model.init_args.network.init_args.img_size"
@@ -90,6 +79,8 @@ class LightningCLI(cli.LightningCLI):
         parser.link_arguments("text_conditioning", "model.init_args.network.init_args.text_conditioning")
         parser.link_arguments("text_conditioning", "model.init_args.text_conditioning")
         parser.link_arguments("text_conditioning", "data.init_args.text_conditioning")
+        parser.add_argument('--ckpt_dir', help='checkpoint dir')
+        parser.link_arguments("ckpt_dir", "model.init_args.network.init_args.ckpt_dir")
         parser.add_argument('--ckpt_name', help='your finetuned vit checkpname')
         parser.link_arguments("ckpt_name", "model.init_args.network.init_args.ckpt_name")
         parser.add_argument('--original_res', help='original img_res your vit was trained on')

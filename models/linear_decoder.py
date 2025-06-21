@@ -28,6 +28,7 @@ class LinearDecoder(Encoder):
         sub_norm=False,
         patch_size=16,
         pretrained=True,
+        ckpt_dir="",
         ckpt_name=""
     ):
         super().__init__(
